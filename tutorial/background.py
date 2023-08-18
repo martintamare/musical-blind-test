@@ -26,7 +26,7 @@ class MyGame(arcade.Window):
     """
 
     def __init__(self, width, height, title):
-        """ Initializer """
+        """Initializer"""
 
         # Call the parent class initializer
         super().__init__(width, height, title)
@@ -57,12 +57,14 @@ class MyGame(arcade.Window):
         arcade.set_background_color(arcade.color.AMAZON)
 
     def setup(self):
-        """ Set up the game and initialize the variables. """
+        """Set up the game and initialize the variables."""
 
         # Load the background image. Do this in the setup so we don't keep reloading it all the time.
         # Image from:
         # https://wallpaper-gallery.net/single/free-background-images/free-background-images-22.html
-        self.background = arcade.load_texture(":resources:images/backgrounds/abstract_1.jpg")
+        self.background = arcade.load_texture(
+            ":resources:images/backgrounds/abstract_1.jpg"
+        )
 
         # Sprite lists
         self.player_list = arcade.SpriteList()
@@ -70,14 +72,15 @@ class MyGame(arcade.Window):
 
         # Set up the player
         self.score = 0
-        self.player_sprite = arcade.Sprite(":resources:images/animated_characters/female_person/femalePerson_idle.png",
-                                           PLAYER_SCALING)
+        self.player_sprite = arcade.Sprite(
+            ":resources:images/animated_characters/female_person/femalePerson_idle.png",
+            PLAYER_SCALING,
+        )
         self.player_sprite.center_x = 50
         self.player_sprite.center_y = 50
         self.player_list.append(self.player_sprite)
 
         for i in range(50):
-
             # Create the coin instance
             coin = arcade.Sprite(":resources:images/items/coinGold.png", COIN_SCALING)
 
@@ -97,9 +100,9 @@ class MyGame(arcade.Window):
         self.clear()
 
         # Draw the background texture
-        arcade.draw_lrwh_rectangle_textured(0, 0,
-                                            SCREEN_WIDTH, SCREEN_HEIGHT,
-                                            self.background)
+        arcade.draw_lrwh_rectangle_textured(
+            0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, self.background
+        )
 
         # Draw all the sprites.
         self.coin_list.draw()
@@ -116,14 +119,16 @@ class MyGame(arcade.Window):
         self.player_sprite.center_y = y
 
     def on_update(self, delta_time):
-        """ Movement and game logic """
+        """Movement and game logic"""
 
         # Call update on the coin sprites (The sprites don't do much in this
         # example though.)
         self.coin_list.update()
 
         # Generate a list of all sprites that collided with the player.
-        hit_list = arcade.check_for_collision_with_list(self.player_sprite, self.coin_list)
+        hit_list = arcade.check_for_collision_with_list(
+            self.player_sprite, self.coin_list
+        )
 
         # Loop through each colliding sprite, remove it, and add to the score.
         for coin in hit_list:
@@ -132,7 +137,7 @@ class MyGame(arcade.Window):
 
 
 def main():
-    """ Main function """
+    """Main function"""
     window = MyGame(SCREEN_WIDTH, SCREEN_HEIGHT, SCREEN_TITLE)
     window.setup()
     arcade.run()

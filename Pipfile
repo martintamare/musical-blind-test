@@ -5,11 +5,11 @@ name = "pypi"
 
 [packages]
 arcade = "*"
-spotipy = {git = "https://github.com/martintamare/spotipy.git"}
+spotipy = "*"
 python-dotenv = "*"
 
 [dev-packages]
-flake8 = "*"
+black = "*"
 
 [requires]
 python_version = "3"
