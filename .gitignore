@@ -1,0 +1,7 @@
+.env
+*.swp
+*.pyc
+*.venv/
+*.virtualenv/
+.cache
+.mypy_cache
