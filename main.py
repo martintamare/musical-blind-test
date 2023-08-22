@@ -1,16 +1,21 @@
 import arcade
 import config
-from game.screens import StartScreen
+from game.views import MainView
 
 
 class MusicalBlindTest(arcade.Window):
     def __init__(self):
-        super().__init__(config.SCREEN_WIDTH, config.SCREEN_HEIGHT, config.SCREEN_TITLE)
+        super().__init__(
+            config.SCREEN_WIDTH,
+            config.SCREEN_HEIGHT,
+            config.SCREEN_TITLE,
+            resizable=True,
+        )
         self.current_screen = None
+        self.setup()
 
     def setup(self):
-        # Créer et montrer l'écran de démarrage
-        self.current_screen = StartScreen(self)
+        self.current_screen = MainView(self)
         self.show_view(self.current_screen)
 
     def start_game(self):
@@ -20,7 +25,6 @@ class MusicalBlindTest(arcade.Window):
 
 def main():
     game = MusicalBlindTest()
-    game.setup()
     arcade.run()
 
 
