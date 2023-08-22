@@ -35,6 +35,8 @@ class MainView(arcade.View):
 
         @exit_button.event("on_click")
         def on_click_exit(event):
+            print(event)
+            print(vars(event))
             arcade.exit()
 
         self.manager.add(
@@ -83,9 +85,11 @@ class MainView(arcade.View):
             self._buttons[i].pressed = press
 
         current_button = self._buttons[self._active_button]
-        x = current_button._rect.x + 10
-        y = current_button._rect.y + 10
-        current_button.on_click(arcade.gui.UIMousePressEvent(None, x, y, 1, 0))
+        print(current_button)
+        self.manager.dispatch_ui_event(
+            "on_click",
+            arcade.gui.UIMousePressEvent(0, 0, button=arcade.MOUSE_BUTTON_LEFT),
+        )
 
     def on_show(self):
         arcade.set_background_color(arcade.color.DARK_BLUE_GRAY)
