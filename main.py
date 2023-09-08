@@ -116,6 +116,10 @@ class App:
         self._pady = 50
 
         container = Frame(self.root)
+        Grid.columnconfigure(root, 0, weight=1)
+        Grid.rowconfigure(root, 0, weight=1)
+        Grid.rowconfigure(root, 1, weight=1)
+        Grid.rowconfigure(root, 2, weight=1)
 
         self.active_frame = None
         self.frames = {}
