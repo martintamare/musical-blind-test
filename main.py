@@ -22,6 +22,7 @@ class SpotifyManager:
         self._user = None
         self._devices = None
         self.chosen_device = None
+        self._playlists = None
 
     @property
     def sp(self):
@@ -30,6 +31,26 @@ class SpotifyManager:
         else:
             self._sp = spotipy.Spotify(auth_manager=self.auth_manager)
             return self._sp
+
+    def get_playlists(self):
+        limit = 50
+        offset = 0
+        stop = False
+        ok_playlists = {}
+        while not stop:
+            playlists = self.sp.current_user_playlists(limit, offset)
+            items = playlists["items"]
+            for item in items:
+                name = item["name"]
+                if name.lower().startswith("mbt_"):
+                    uri = item["uri"]
+                    ok_playlists[name[4:]] = uri
+
+            if len(items) == limit:
+                offset += limit
+            else:
+                stop = True
+        self._playlists = ok_playlists
 
     def get_device_list(self):
         devices = self.sp.devices()
@@ -44,6 +65,12 @@ class SpotifyManager:
 
     def set_device(self, device):
         self.chosen_device = device
+
+    @property
+    def playlists(self):
+        if self._playlists is None:
+            self.get_playlists()
+        return self._playlists
 
     @property
     def devices(self):
@@ -144,17 +171,34 @@ class StartPage(Page):
 
 class GamePage(Page):
     def setup(self):
-        self.button1 = Button(root, text="Yeah", **self.button_dict)
-        self.button1.bind(
-            "<Return>", lambda event: self.controller.show_frame("GamePage")
-        )
+        self.grid_columnconfigure(0, weight=1)
+
+        self.button1 = Button(root, text="Choose a playlist", **self.button_dict)
         self.buttons.append(self.button1)
 
-        self.button2 = Button(root, text="Back", **self.button_dict)
-        self.button2.bind(
+        index = 1
+        for name, uri in self.spotify_manager.playlists.items():
+            self.grid_rowconfigure(index, weight=1)
+            index += 1
+
+            button = Button(root, text=name, **self.button_dict)
+            button.bind(
+                "<Return>",
+                lambda event, name=name, uri=uri: self.start_playlist(name, uri),
+            )
+            self.buttons.append(button)
+
+        # Back
+        self.grid_rowconfigure(index, weight=1)
+
+        self.button4 = Button(root, text="Back", **self.button_dict)
+        self.button4.bind(
             "<Return>", lambda event: self.controller.show_frame("StartPage")
         )
-        self.buttons.append(self.button2)
+        self.buttons.append(self.button4)
+
+    def start_playlist(self, name, uri):
+        print(f"Starting game for {name} {uri}")
 
 
 class SettingPage(Page):
