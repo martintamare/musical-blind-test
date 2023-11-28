@@ -166,9 +166,9 @@ class SettingPage(Page):
         self.grid_rowconfigure(3, weight=1)
         self.grid_rowconfigure(4, weight=1)
 
-        self.button1 = Button(root, text="S1", **self.button_dict)
+        self.button1 = Button(root, text="Players", **self.button_dict)
         self.button1.bind(
-            "<Return>", lambda event: self.controller.show_frame("GamePage")
+            "<Return>", lambda event: self.controller.show_frame("PlayerPage")
         )
         self.buttons.append(self.button1)
 
@@ -203,6 +203,50 @@ class SettingPage(Page):
     def update_device_list(self):
         devices = self.spotify_manager.get_device_list()
         self.controller.show_frame("DevicePage")
+
+
+class PlayerPage(Page):
+    def setup(self):
+        self.grid_columnconfigure(0, weight=1)
+        self.grid_rowconfigure(0, weight=1)
+        self.grid_rowconfigure(1, weight=1)
+        self.grid_rowconfigure(2, weight=1)
+        self.grid_rowconfigure(3, weight=1)
+        self.grid_rowconfigure(4, weight=1)
+
+        button1_text = f"Current Player : {self.controller.players}"
+        self.button1 = Button(root, text=button1_text, **self.button_dict)
+        self.buttons.append(self.button1)
+
+        self.button2 = Button(root, text="+", **self.button_dict)
+        self.button2.bind("<Return>", lambda event: self.add_player())
+        self.buttons.append(self.button2)
+
+        self.button3 = Button(root, text="-", **self.button_dict)
+        self.button3.bind("<Return>", lambda event: self.del_player())
+        self.buttons.append(self.button3)
+
+        self.button4 = Button(root, text="Back", **self.button_dict)
+        self.button4.bind(
+            "<Return>", lambda event: self.controller.show_frame("SettingPage")
+        )
+        self.buttons.append(self.button4)
+
+    def add_player(self):
+        current_players = self.controller.players
+        if current_players + 1 < 5:
+            self.controller.players = current_players + 1
+        self.display_players()
+
+    def del_player(self):
+        current_players = self.controller.players
+        if current_players - 1 > 1:
+            self.controller.players = current_players - 1
+        self.display_players()
+
+    def display_players(self):
+        button1_text = f"Current Player : {self.controller.players}"
+        self.button1.configure(text=button1_text)
 
 
 class DevicePage(Page):
@@ -243,6 +287,7 @@ class App:
         self._padx = 50
         self._pady = 50
         self.spotify_manager = SpotifyManager()
+        self.players = 2
 
         container = Frame(self.root)
         Grid.columnconfigure(root, 0, weight=1)
@@ -256,7 +301,7 @@ class App:
 
         self.active_frame = None
         self.frames = {}
-        for F in (StartPage, GamePage, SettingPage, DevicePage):
+        for F in (StartPage, GamePage, SettingPage, DevicePage, PlayerPage):
             page_name = F.__name__
             frame = F(parent=container, controller=self)
             self.frames[page_name] = frame
