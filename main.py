@@ -4,6 +4,7 @@ from tkinter import *
 import spotipy
 from spotipy.oauth2 import SpotifyOAuth
 from dotenv import load_dotenv
+import time, datetime
 
 
 class SpotifyManager:
@@ -23,6 +24,7 @@ class SpotifyManager:
         self._devices = None
         self.chosen_device = None
         self._playlists = None
+        self.active_playlist = None
 
     @property
     def sp(self):
@@ -85,6 +87,38 @@ class SpotifyManager:
             if not self.auth_manager.is_token_expired(token_info):
                 return True
         return False
+
+    def set_playlist(self, name, uri):
+        self.active_playlist = {"name": name, "uri": uri}
+
+    def start_playlist(self):
+        if not self.active_playlist:
+            return
+        uri = self.active_playlist["uri"]
+        items = self.sp.playlist_items(uri)
+        self.active_items = items["items"]
+        self.active_index = 0
+        self.play_track()
+
+    def play_track(self):
+        item = self.active_items[self.active_index]
+        track = item["track"]
+        uri = track["uri"]
+        name = track["name"]
+        album = track["album"]
+        album_name = album["name"]
+        release_date = album["release_date"]
+        artists = track["artists"]
+
+        for a in artists:
+            print(f"artist {a}")
+
+        artist = " & ".join([x["name"] for x in artists])
+
+        print(f"name={name}")
+        print(f"album={album_name} - {release_date}")
+        print(f"artist={artist}")
+        self.sp.start_playback(device_id=self.chosen_device["id"], uris=[uri])
 
     @property
     def user(self):
@@ -149,12 +183,43 @@ class Page(Frame):
         self.buttons[0].focus_set()
         self.selected_button_index = 0
 
+    def key_pressed(self, event):
+        pass
+        print(f"pressed {repr(event.char)} in {self}")
+
+
+class GamePage(Page):
+    def setup(self):
+        self.button1 = Button(root, text="Game", **self.button_dict)
+        self.buttons.append(self.button1)
+
+        self.button2 = Button(root, text="Time", **self.button_dict)
+        self.buttons.append(self.button2)
+
+        self.button3 = Button(root, text="Quit", **self.button_dict)
+        self.button3.bind("<Return>", lambda event: self.controller.root.destroy())
+        self.buttons.append(self.button3)
+
+    def show(self):
+        Page.show(self)
+        self.start_time = datetime.datetime.now()
+        self.start_chrono()
+        self.spotify_manager.start_playlist()
+
+    def start_chrono(self):
+        def count():
+            duration = datetime.datetime.now() - self.start_time
+            self.button2.configure(text=f"{duration}")
+            self.button2.after(100, count)
+
+        count()
+
 
 class StartPage(Page):
     def setup(self):
         self.button1 = Button(root, text="Start Game", **self.button_dict)
         self.button1.bind(
-            "<Return>", lambda event: self.controller.show_frame("GamePage")
+            "<Return>", lambda event: self.controller.show_frame("PlaylistChoicePage")
         )
         self.buttons.append(self.button1)
 
@@ -169,7 +234,70 @@ class StartPage(Page):
         self.buttons.append(self.button3)
 
 
-class GamePage(Page):
+class ReadyPage(Page):
+    def setup(self):
+        self.ready = {}
+
+        self.grid_columnconfigure(0, weight=1)
+
+        self.button1 = Button(root, text="Ready ?", **self.button_dict)
+        self.buttons.append(self.button1)
+
+        index = 1
+        for player in range(self.controller.players):
+            self.grid_rowconfigure(index, weight=1)
+            self.ready[index] = False
+
+            button_text = f"Player {index} - Waiting Validation"
+            button = Button(root, text=button_text, **self.button_dict)
+            self.buttons.append(button)
+
+            index += 1
+
+        # Back
+        self.grid_rowconfigure(index, weight=1)
+
+        self.button4 = Button(root, text="Back", **self.button_dict)
+        self.button4.bind(
+            "<Return>", lambda event: self.controller.show_frame("StartPage")
+        )
+        self.buttons.append(self.button4)
+
+    def show(self):
+        Page.show(self)
+        self.focus_set()
+
+    def key_pressed(self, event):
+        key = event.char.lower()
+        mapping = {
+            "a": 1,
+            "z": 2,
+            "e": 3,
+            "r": 4,
+        }
+        if key in mapping:
+            player = mapping[key]
+            self.set_player_ready(player)
+
+    def set_player_ready(self, index):
+        if index in self.ready:
+            self.ready[index] = True
+            self.buttons[index].configure(text=f"Player {index} - Ready !")
+            self.ready_to_run()
+        else:
+            print("Player {index} not present")
+
+    def ready_to_run(self):
+        ready = True
+        for index, player_ready in self.ready.items():
+            if not player_ready:
+                ready = False
+                break
+        if ready:
+            self.controller.show_frame("GamePage")
+
+
+class PlaylistChoicePage(Page):
     def setup(self):
         self.grid_columnconfigure(0, weight=1)
 
@@ -184,7 +312,7 @@ class GamePage(Page):
             button = Button(root, text=name, **self.button_dict)
             button.bind(
                 "<Return>",
-                lambda event, name=name, uri=uri: self.start_playlist(name, uri),
+                lambda event, name=name, uri=uri: self.launch_ready_page(name, uri),
             )
             self.buttons.append(button)
 
@@ -197,8 +325,9 @@ class GamePage(Page):
         )
         self.buttons.append(self.button4)
 
-    def start_playlist(self, name, uri):
-        print(f"Starting game for {name} {uri}")
+    def launch_ready_page(self, name, uri):
+        self.spotify_manager.set_playlist(name, uri)
+        self.controller.show_frame("ReadyPage")
 
 
 class SettingPage(Page):
@@ -345,7 +474,15 @@ class App:
 
         self.active_frame = None
         self.frames = {}
-        for F in (StartPage, GamePage, SettingPage, DevicePage, PlayerPage):
+        for F in (
+            StartPage,
+            PlaylistChoicePage,
+            SettingPage,
+            DevicePage,
+            PlayerPage,
+            ReadyPage,
+            GamePage,
+        ):
             page_name = F.__name__
             frame = F(parent=container, controller=self)
             self.frames[page_name] = frame
@@ -359,6 +496,7 @@ class App:
 
         root.bind("<Up>", lambda event: self.navigate_up())
         root.bind("<Down>", lambda event: self.navigate_down())
+        root.bind("<KeyPress>", lambda event: self.key_pressed(event))
 
     def show_frame(self, page_name):
         """Show a frame for the given page name"""
@@ -373,6 +511,9 @@ class App:
 
     def navigate_down(self):
         self.active_frame.navigate_down()
+
+    def key_pressed(self, event):
+        self.active_frame.key_pressed(event)
 
 
 if __name__ == "__main__":
