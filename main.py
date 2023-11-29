@@ -139,23 +139,20 @@ class Page(Frame):
         self.buttons = []
         self.selected_button_index = 0
 
-        self.grid_columnconfigure(0, weight=1)
-        self.grid_rowconfigure(0, weight=1)
-        self.grid_rowconfigure(1, weight=1)
-        self.grid_rowconfigure(2, weight=1)
-        self.grid_rowconfigure(3, weight=1)
-
         self.button_dict = {
             "bg": "#22cbff",
             "fg": "black",
             "font": ("Arial", 25, "bold"),
         }
         self.grid_dict = {"sticky": "nswe", "padx": 50, "pady": 50}
-
-        self.setup()
+        self._setup = False
 
     def setup(self):
-        pass
+        self._setup = True
+
+        self.grid_columnconfigure(0, weight=1)
+        for index in range(len(self.buttons)):
+            self.grid_rowconfigure(index, weight=1)
 
     def navigate_up(self):
         self.selected_button_index = (self.selected_button_index - 1) % len(
@@ -177,7 +174,10 @@ class Page(Frame):
             button.grid_forget()
 
     def show(self):
+        if not self._setup:
+            self.setup()
         for index in range(len(self.buttons)):
+            print(f"Showing button {index}")
             self.buttons[index].grid(column=0, row=index, **self.grid_dict)
         self.tkraise()
         self.buttons[0].focus_set()
@@ -199,6 +199,7 @@ class GamePage(Page):
         self.button3 = Button(root, text="Quit", **self.button_dict)
         self.button3.bind("<Return>", lambda event: self.controller.root.destroy())
         self.buttons.append(self.button3)
+        Page.setup(self)
 
     def show(self):
         Page.show(self)
@@ -232,11 +233,12 @@ class StartPage(Page):
         self.button3 = Button(root, text="Quit", **self.button_dict)
         self.button3.bind("<Return>", lambda event: self.controller.root.destroy())
         self.buttons.append(self.button3)
+        Page.setup(self)
 
 
 class ReadyPage(Page):
     def setup(self):
-        self.ready = {}
+        self.ready = {"master": False}
 
         self.grid_columnconfigure(0, weight=1)
 
@@ -245,7 +247,6 @@ class ReadyPage(Page):
 
         index = 1
         for player in range(self.controller.players):
-            self.grid_rowconfigure(index, weight=1)
             self.ready[index] = False
 
             button_text = f"Player {index} - Waiting Validation"
@@ -254,14 +255,13 @@ class ReadyPage(Page):
 
             index += 1
 
-        # Back
-        self.grid_rowconfigure(index, weight=1)
-
         self.button4 = Button(root, text="Back", **self.button_dict)
         self.button4.bind(
             "<Return>", lambda event: self.controller.show_frame("StartPage")
         )
         self.buttons.append(self.button4)
+        self.grid_dict = {"sticky": "nswe", "padx": 10, "pady": 10}
+        Page.setup(self)
 
     def show(self):
         Page.show(self)
@@ -278,6 +278,9 @@ class ReadyPage(Page):
         if key in mapping:
             player = mapping[key]
             self.set_player_ready(player)
+        if key == "t":
+            self.ready["master"] = True
+            self.ready_to_run()
 
     def set_player_ready(self, index):
         if index in self.ready:
@@ -293,7 +296,7 @@ class ReadyPage(Page):
             if not player_ready:
                 ready = False
                 break
-        if ready:
+        if ready and self.ready:
             self.controller.show_frame("GamePage")
 
 
@@ -324,6 +327,7 @@ class PlaylistChoicePage(Page):
             "<Return>", lambda event: self.controller.show_frame("StartPage")
         )
         self.buttons.append(self.button4)
+        Page.setup(self)
 
     def launch_ready_page(self, name, uri):
         self.spotify_manager.set_playlist(name, uri)
@@ -359,6 +363,7 @@ class SettingPage(Page):
             "<Return>", lambda event: self.controller.show_frame("StartPage")
         )
         self.buttons.append(self.button4)
+        Page.setup(self)
 
     def login_to_spotify(self):
         if self.spotify_manager.check_login_status():
@@ -404,6 +409,7 @@ class PlayerPage(Page):
             "<Return>", lambda event: self.controller.show_frame("SettingPage")
         )
         self.buttons.append(self.button4)
+        Page.setup(self)
 
     def add_player(self):
         current_players = self.controller.players
@@ -445,6 +451,7 @@ class DevicePage(Page):
             "<Return>", lambda event: self.controller.show_frame("SettingPage")
         )
         self.buttons.append(self.button4)
+        Page.setup(self)
 
     def set_device(self, device):
         self.spotify_manager.set_device(device)
