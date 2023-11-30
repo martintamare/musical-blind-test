@@ -7,6 +7,39 @@ from dotenv import load_dotenv
 import time, datetime
 
 
+class Chronometer:
+    def __init__(self, element):
+        self.element = element
+        self.duration_at_pause = None
+
+    def run(self):
+        def count():
+            duration = datetime.datetime.now() - self.start_time
+            if self.duration_at_pause:
+                duration += self.duration_at_pause
+            total_seconds = duration.total_seconds()
+            self.element.configure(text=f"{total_seconds:.1f} s")
+            self.after = self.element.after(100, count)
+
+        count()
+
+    def pause(self):
+        if self.duration_at_pause is None:
+            self.duration_at_pause = datetime.datetime.now() - self.start_time
+        else:
+            duration = datetime.datetime.now() - self.start_time
+            self.duration_at_pause += duration
+        if self.after:
+            self.element.after_cancel(self.after)
+
+    def start(self):
+        self.start_time = datetime.datetime.now()
+        self.run()
+
+    def resume(self):
+        self.start()
+
+
 class SpotifyManager:
     def __init__(self):
         scopes = [
@@ -100,6 +133,19 @@ class SpotifyManager:
         self.active_index = 0
         self.play_track()
 
+    @property
+    def device_id(self):
+        if self.chosen_device:
+            return self.chosen_device["id"]
+        else:
+            return None
+
+    def pause(self):
+        self.sp.pause_playback(device_id=self.device_id)
+
+    def resume(self):
+        self.sp.start_playback(device_id=self.device_id)
+
     def play_track(self):
         item = self.active_items[self.active_index]
         track = item["track"]
@@ -118,7 +164,7 @@ class SpotifyManager:
         print(f"name={name}")
         print(f"album={album_name} - {release_date}")
         print(f"artist={artist}")
-        self.sp.start_playback(device_id=self.chosen_device["id"], uris=[uri])
+        self.sp.start_playback(device_id=self.device_id, uris=[uri])
 
     @property
     def user(self):
@@ -196,24 +242,49 @@ class GamePage(Page):
         self.button2 = Button(root, text="Time", **self.button_dict)
         self.buttons.append(self.button2)
 
-        self.button3 = Button(root, text="Quit", **self.button_dict)
-        self.button3.bind("<Return>", lambda event: self.controller.root.destroy())
+        self.button3 = Button(root, text="Ready", **self.button_dict)
+        self.buttons.append(self.button3)
+
+        self.button4 = Button(root, text="Quit", **self.button_dict)
+        self.button4.bind("<Return>", lambda event: self.controller.root.destroy())
         self.buttons.append(self.button3)
         Page.setup(self)
 
+        self.chronometer = Chronometer(self.button2)
+
     def show(self):
         Page.show(self)
-        self.start_time = datetime.datetime.now()
-        self.start_chrono()
+        self.chronometer.start()
         self.spotify_manager.start_playlist()
 
-    def start_chrono(self):
-        def count():
-            duration = datetime.datetime.now() - self.start_time
-            self.button2.configure(text=f"{duration}")
-            self.button2.after(100, count)
+    def pause(self):
+        self.chronometer.pause()
+        self.spotify_manager.pause()
 
-        count()
+    def resume(self):
+        self.spotify_manager.resume()
+        self.chronometer.resume()
+
+    def next_song(self):
+        print("TODO")
+
+    def key_pressed(self, event):
+        key = event.char.lower()
+        mapping = {
+            "a": 1,
+            "z": 2,
+            "e": 3,
+            "r": 4,
+        }
+        if key in mapping:
+            player = mapping[key]
+            self.button3.configure(text=f"Player {player} - Réponse ?")
+            self.pause()
+        elif key == "t":
+            self.resume()
+
+        elif key == "y":
+            self.next_song()
 
 
 class StartPage(Page):
@@ -278,7 +349,7 @@ class ReadyPage(Page):
         if key in mapping:
             player = mapping[key]
             self.set_player_ready(player)
-        if key == "t":
+        elif key == "t":
             self.ready["master"] = True
             self.ready_to_run()
 
