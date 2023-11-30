@@ -1,6 +1,6 @@
 import config
 from pprint import pprint
-from tkinter import *
+from tkinter import Tk, Frame, Grid, Button
 import spotipy
 from spotipy.oauth2 import SpotifyOAuth
 from dotenv import load_dotenv
@@ -63,6 +63,7 @@ class SpotifyManager:
         self.chosen_device = None
         self._playlists = None
         self.active_playlist = None
+        self.player_status = None
 
     @property
     def sp(self):
@@ -146,10 +147,14 @@ class SpotifyManager:
             return None
 
     def pause(self):
-        self.sp.pause_playback(device_id=self.device_id)
+        if self.player_status != "pause":
+            self.sp.pause_playback(device_id=self.device_id)
+            self.player_status = "pause"
 
     def resume(self):
-        self.sp.start_playback(device_id=self.device_id)
+        if self.player_status != "play":
+            self.sp.start_playback(device_id=self.device_id)
+            self.player_status = "play"
 
     def play_track(self):
         item = self.active_items[self.active_index]
@@ -169,6 +174,7 @@ class SpotifyManager:
         print(f"name={name}")
         print(f"album={album_name} - {release_date}")
         print(f"artist={artist}")
+        self.player_status = "play"
         self.sp.start_playback(device_id=self.device_id, uris=[uri])
 
     @property
@@ -191,11 +197,13 @@ class Page(Frame):
         self.selected_button_index = 0
 
         self.button_dict = {
-            "bg": "#22cbff",
             "fg": "black",
             "font": ("Arial", 25, "bold"),
         }
         self.grid_dict = {"sticky": "nswe", "padx": 50, "pady": 50}
+        self._setup = False
+
+    def reset_setup(self):
         self._setup = False
 
     def setup(self):
@@ -228,7 +236,6 @@ class Page(Frame):
         if not self._setup:
             self.setup()
         for index in range(len(self.buttons)):
-            print(f"Showing button {index}")
             self.buttons[index].grid(column=0, row=index, **self.grid_dict)
         self.tkraise()
         self.buttons[0].focus_set()
@@ -236,29 +243,58 @@ class Page(Frame):
 
     def key_pressed(self, event):
         pass
-        print(f"pressed {repr(event.char)} in {self}")
 
 
 class GamePage(Page):
     def setup(self):
+        self.buttons = []
+        self.player_buttons = []
+        self.player_color = {}
+
+        for column in range(4):
+            self.grid_columnconfigure(column, weight=1)
+        for row in range(4):
+            self.grid_rowconfigure(row, weight=1)
+
         self.button1 = Button(root, text="Game", **self.button_dict)
         self.buttons.append(self.button1)
+        self.button1.grid(column=0, row=0, **self.grid_dict, columnspan=4)
 
         self.button2 = Button(root, text="Time", **self.button_dict)
         self.buttons.append(self.button2)
+        self.button2.grid(column=0, row=1, **self.grid_dict, columnspan=4)
 
-        self.button3 = Button(root, text="Ready", **self.button_dict)
-        self.buttons.append(self.button3)
+        self.player_button_dict = {
+            "highlightbackground": "white",
+            "highlightthickness": 10,
+            "borderwidth": 0.9,
+            "fg": "black",
+            "font": ("Arial", 25, "bold"),
+        }
+        self.player_grid_dict = {"sticky": "nswe", "padx": 10, "pady": 10}
+        index = 1
+        for player in range(self.controller.players):
+            button = Button(root, text=f"P{index}", **self.button_dict)
+            button.grid(column=player, row=2, **self.player_grid_dict)
+            self.player_buttons.append(button)
+            self.player_color[player] = "white"
+            index += 1
 
-        self.button4 = Button(root, text="Quit", **self.button_dict)
-        self.button4.bind("<Return>", lambda event: self.controller.root.destroy())
+        self.button3 = Button(root, text="Quit", **self.button_dict)
+        self.button3.bind(
+            "<Return>", lambda event: self.controller.show_frame("StartPage")
+        )
+        self.button3.grid(column=0, row=3, **self.grid_dict, columnspan=4)
         self.buttons.append(self.button3)
-        Page.setup(self)
 
         self.chronometer = Chronometer(self.button2)
 
     def show(self):
-        Page.show(self)
+        if not self._setup:
+            self.setup()
+        self.tkraise()
+        self.buttons[0].focus_set()
+        self.selected_button_index = 0
         self.chronometer.start()
         self.spotify_manager.start_playlist()
 
@@ -267,6 +303,7 @@ class GamePage(Page):
         self.spotify_manager.pause()
 
     def resume(self):
+        self.reset_player_buttons()
         self.spotify_manager.resume()
         self.chronometer.resume()
 
@@ -276,20 +313,39 @@ class GamePage(Page):
     def key_pressed(self, event):
         key = event.char.lower()
         mapping = {
-            "a": 1,
-            "z": 2,
-            "e": 3,
-            "r": 4,
+            "a": 0,
+            "z": 1,
+            "e": 2,
+            "r": 3,
         }
         if key in mapping:
             player = mapping[key]
-            self.button3.configure(text=f"Player {player} - Réponse ?")
-            self.pause()
+            self.answer_from_player(player)
         elif key == "t":
             self.resume()
 
         elif key == "y":
             self.next_song()
+
+    def answer_from_player(self, player):
+        if self.spotify_manager.player_status == "play":
+            if self.player_color[player] != "red":
+                self.player_color[player] = "green"
+                self.update_player_buttons()
+                self.pause()
+
+    def reset_player_buttons(self):
+        for player in range(self.controller.players):
+            self.player_color[player] = "white"
+        self.update_player_buttons()
+
+    def update_player_buttons(self):
+        for player in range(self.controller.players):
+            color = self.player_color[player]
+            print(f"player {player} is {color}")
+            test = self.player_buttons[player]
+            print(f"{test}")
+            self.player_buttons[player].configure(highlightbackground=color)
 
 
 class StartPage(Page):
@@ -314,6 +370,7 @@ class StartPage(Page):
 
 class ReadyPage(Page):
     def setup(self):
+        self.buttons = []
         self.ready = {"master": False}
 
         self.grid_columnconfigure(0, weight=1)
@@ -543,7 +600,8 @@ class App:
         self._padx = 50
         self._pady = 50
         self.spotify_manager = SpotifyManager()
-        self.players = 2
+        self.players = 4
+        self.scores = {}
 
         container = Frame(self.root)
         Grid.columnconfigure(root, 0, weight=1)
@@ -587,14 +645,16 @@ class App:
         for frame in self.frames.values():
             if frame != self.active_frame:
                 frame.hide()
+        if page_name == "ReadyPage":
+            self.active_frame.reset_setup()
         self.active_frame.show()
 
     def navigate_up(self):
-        play_sound('./sounds/navigation.wav')
+        play_sound("./sounds/navigation.wav")
         self.active_frame.navigate_up()
 
     def navigate_down(self):
-        play_sound('./sounds/navigation.wav')
+        play_sound("./sounds/navigation.wav")
         self.active_frame.navigate_down()
 
     def key_pressed(self, event):

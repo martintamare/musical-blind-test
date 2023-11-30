@@ -5,3 +5,4 @@
 *.virtualenv/
 .cache
 .mypy_cache
+.DS_Store
