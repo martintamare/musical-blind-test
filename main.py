@@ -5,6 +5,11 @@ import spotipy
 from spotipy.oauth2 import SpotifyOAuth
 from dotenv import load_dotenv
 import time, datetime
+from playsound import playsound
+
+
+def play_sound(name):
+    playsound(name, False)
 
 
 class Chronometer:
@@ -585,9 +590,11 @@ class App:
         self.active_frame.show()
 
     def navigate_up(self):
+        play_sound('./sounds/navigation.wav')
         self.active_frame.navigate_up()
 
     def navigate_down(self):
+        play_sound('./sounds/navigation.wav')
         self.active_frame.navigate_down()
 
     def key_pressed(self, event):
