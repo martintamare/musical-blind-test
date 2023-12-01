@@ -63,18 +63,13 @@ class Page(Frame):
         rowspan = int(grid_rows / self.rows)
 
         for row in range(self.rows):
-            print(f"{row=}")
             ok_row = row * rowspan
             row_elements = self.elements[row]
             columnspan = int(grid_columns / len(row_elements))
-            print(f"{grid_rows=} rows={self.rows} {rowspan=}")
-            print(f"{grid_columns=} columns={len(row_elements)} {columnspan=}")
-            print(f"{row_elements} {len(row_elements)}")
             for column in range(self.columns):
                 if column >= len(row_elements):
                     continue
                 ok_column = column * columnspan
-                print(f"{column=}")
                 element = row_elements[column]
                 element.grid(
                     column=ok_column,
