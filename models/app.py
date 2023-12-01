@@ -24,14 +24,10 @@ class App:
         self.reset_score()
 
         container = Frame(self.root)
-        Grid.columnconfigure(self.root, 0, weight=1)
-        Grid.rowconfigure(self.root, 0, weight=1)
-        Grid.rowconfigure(self.root, 1, weight=1)
-        Grid.rowconfigure(self.root, 2, weight=1)
-        Grid.rowconfigure(self.root, 3, weight=1)
-        Grid.rowconfigure(self.root, 4, weight=1)
-        Grid.rowconfigure(self.root, 5, weight=1)
-        Grid.rowconfigure(self.root, 6, weight=1)
+        for column in range(4):
+            Grid.columnconfigure(self.root, column, weight=1)
+        for row in range(7):
+            Grid.rowconfigure(self.root, row, weight=1)
 
         self.active_frame = None
         self.frames = {}
