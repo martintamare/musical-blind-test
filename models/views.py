@@ -169,6 +169,7 @@ class GamePage(Page):
             return
         play_sound("./sounds/ko.mp3", True)
         sleep(1)
+        self.add_wrong_answer_score()
         self.reset_player_buttons()
         self.active_playlist.resume()
         self.chronometer.resume()
@@ -177,13 +178,19 @@ class GamePage(Page):
         button_text = self.active_playlist.current_song.details
         self.answer_button.configure(text=button_text)
 
-    def update_scores(self):
+    def add_right_answer_score(self):
+        add_score = 10 + self.chronometer.bonus
+        self.update_scores(add_score)
+
+    def add_wrong_answer_score(self):
+        add_score = -5
+        self.update_scores(add_score)
+
+    def update_scores(self, to_add):
         for index, color in enumerate(self.player_colors):
             if color == "green":
-                add_score = 1
-                if self.chronometer.ok_for_bonus():
-                    add_score = 2
-                self.controller.scores[index] += add_score
+                current_score = self.controller.scores[index]
+                self.controller.scores[index] = max(0, current_score + to_add)
         for player in range(self.controller.players):
             score = self.controller.scores[player]
             self.score_buttons[player].configure(text=f"{score}")
@@ -191,7 +198,9 @@ class GamePage(Page):
     def go_next(self):
         def next_action():
             if self.active_playlist.is_over:
+                self.controller.frames["ScorePage"].reset_setup()
                 self.controller.show_frame("ScorePage")
+                self.controller.frames["SplashPage"].reset()
             else:
                 self.active_playlist.next_song()
                 self.controller.show_frame("SplashPage")
@@ -204,10 +213,11 @@ class GamePage(Page):
             return
         self.active_playlist.resume()
         self.display_answer()
-        self.update_scores()
+        self.add_right_answer_score()
         play_sound("./sounds/ok.mp3", True)
 
     def skip(self):
+        self.chronometer.pause()
         self.display_answer()
         self.go_next()
 

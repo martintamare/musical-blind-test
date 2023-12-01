@@ -36,11 +36,10 @@ class Chronometer:
         self.duration_at_pause = None
         self.duration = None
 
-    def ok_for_bonus(self):
+    @property
+    def bonus(self):
         total_seconds = int(self.duration.total_seconds())
-        if total_seconds < 4:
-            return True
-        return False
+        return max(0, 15-total_seconds)
 
     def run(self):
         def count():
