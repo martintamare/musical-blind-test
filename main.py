@@ -439,8 +439,8 @@ class GamePage(Page):
         self.tkraise()
         self.buttons[0].focus_set()
         self.selected_button_index = 0
-        self.chronometer.start()
         self.active_playlist.play()
+        self.chronometer.start()
 
     def hide(self):
         Page.hide(self)
@@ -499,7 +499,6 @@ class GamePage(Page):
         self.display_answer()
         self.update_scores()
         play_sound("./sounds/ok.mp3", True)
-        self.go_next()
 
     def skip(self):
         self.display_answer()
