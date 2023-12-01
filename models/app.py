@@ -1,4 +1,4 @@
-from tkinter import Frame, Grid
+from tkinter import Frame
 from .spotify import SpotifyManager
 from .views import (
     StartPage,
@@ -24,10 +24,10 @@ class App:
         self.reset_score()
 
         container = Frame(self.root)
-        for column in range(4):
-            Grid.columnconfigure(self.root, column, weight=1)
-        for row in range(7):
-            Grid.rowconfigure(self.root, row, weight=1)
+        for column in range(3 * 4):
+            root.columnconfigure(column, weight=1)
+        for row in range(3 * 4):
+            root.rowconfigure(row, weight=1)
 
         self.active_frame = None
         self.frames = {}
@@ -69,7 +69,7 @@ class App:
         for frame in self.frames.values():
             if frame != self.active_frame:
                 frame.hide()
-        if page_name == "ReadyPage":
+        if page_name in ["ReadyPage", "GamePage"]:
             self.active_frame.reset_setup()
         self.active_frame.show()
 
