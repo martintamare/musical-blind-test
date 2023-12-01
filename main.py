@@ -342,9 +342,7 @@ class GamePage(Page):
     def update_player_buttons(self):
         for player in range(self.controller.players):
             color = self.player_color[player]
-            print(f"player {player} is {color}")
             test = self.player_buttons[player]
-            print(f"{test}")
             self.player_buttons[player].configure(highlightbackground=color)
 
 
@@ -600,7 +598,7 @@ class App:
         self._padx = 50
         self._pady = 50
         self.spotify_manager = SpotifyManager()
-        self.players = 4
+        self.players = 2
         self.scores = {}
 
         container = Frame(self.root)
