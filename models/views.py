@@ -114,6 +114,7 @@ class GamePage(Page):
         self.player_buttons = []
         self.score_buttons = []
         self.player_colors = []
+        self.game_status = "waiting"
 
         current_song = self.active_playlist.current_song_number
         total_songs = self.active_playlist.number_of_songs
@@ -157,15 +158,17 @@ class GamePage(Page):
 
     def show(self):
         Page.show(self)
+        self.game_status = "playing"
         self.active_playlist.play()
         self.chronometer.start()
 
     def pause(self):
+        self.game_status = "pause"
         self.chronometer.pause()
         self.active_playlist.pause()
 
     def wrong_answer(self):
-        if self.active_playlist.player_status == "play":
+        if self.game_status != "pause":
             return
         play_sound("./sounds/ko.mp3", True)
         sleep(1)
@@ -173,13 +176,22 @@ class GamePage(Page):
         self.reset_player_buttons()
         self.active_playlist.resume()
         self.chronometer.resume()
+        self.game_status = "playing"
 
     def display_answer(self):
         button_text = self.active_playlist.current_song.details
         self.answer_button.configure(text=button_text)
 
-    def add_right_answer_score(self):
-        add_score = 10 + self.chronometer.bonus
+    def add_right_answer_score(self, complete=False):
+        add_score = 10
+        if self.chronometer.bonus:
+            play_sound("./sounds/ok.mp3", True)
+            add_score += self.chronometer.bonus
+        if complete:
+            play_sound("./sounds/ok.mp3", True)
+            add_score += 5
+        else:
+            play_sound("./sounds/ok.mp3", True)
         self.update_scores(add_score)
 
     def add_wrong_answer_score(self):
@@ -196,6 +208,9 @@ class GamePage(Page):
             self.score_buttons[player].configure(text=f"{score}")
 
     def go_next(self):
+        if self.game_status not in ["score", "skip"]:
+            return
+
         def next_action():
             if self.active_playlist.is_over:
                 self.controller.frames["ScorePage"].reset_setup()
@@ -206,20 +221,31 @@ class GamePage(Page):
                 self.controller.show_frame("SplashPage")
                 self.controller.frames["SplashPage"].reset()
 
-        self.after(5000, next_action)
+        self.after(1000, next_action)
 
     def right_answer(self):
-        if self.active_playlist.player_status == "play":
+        if self.game_status != "pause":
             return
+        self.game_status = "score"
         self.active_playlist.resume()
         self.display_answer()
         self.add_right_answer_score()
         play_sound("./sounds/ok.mp3", True)
 
+    def complete_answer(self):
+        if self.game_status != "pause":
+            return
+        self.game_status = "score"
+        self.active_playlist.resume()
+        self.display_answer()
+        self.add_right_answer_score(complete=True)
+
     def skip(self):
+        if self.game_status != "playing":
+            return
+        self.game_status = "skip"
         self.chronometer.pause()
         self.display_answer()
-        self.go_next()
 
     def key_pressed(self, event):
         key = event.char.lower()
@@ -238,6 +264,9 @@ class GamePage(Page):
         elif key == "y":
             self.right_answer()
 
+        elif key == "u":
+            self.complete_answer()
+
         elif key == "h":
             self.skip()
 
@@ -245,7 +274,7 @@ class GamePage(Page):
             self.go_next()
 
     def answer_from_player(self, player):
-        if self.active_playlist.player_status == "play":
+        if self.game_status == "playing":
             if self.player_colors[player] != "red":
                 self.player_colors[player] = "green"
                 self.update_player_buttons()
@@ -356,7 +385,7 @@ class ReadyPage(Page):
         if key in mapping:
             player = mapping[key]
             self.set_player_ready(player)
-        elif key == "t":
+        elif key == "g":
             self.ready["master"] = True
             self.ready_to_run()
 

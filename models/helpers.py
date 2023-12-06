@@ -39,7 +39,10 @@ class Chronometer:
     @property
     def bonus(self):
         total_seconds = int(self.duration.total_seconds())
-        return max(0, 15-total_seconds)
+        if total_seconds < 4:
+            return 5
+        else:
+            return 0
 
     def run(self):
         def count():
